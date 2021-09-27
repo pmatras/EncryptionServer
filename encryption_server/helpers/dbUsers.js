@@ -5,7 +5,7 @@ const {
 
 const getUserByEmail = (email) => {
   if (!email) {
-    console.log(`Email must be passed to obtain user from db`);
+    console.error('Email must be passed in order to obtain user from db');
     return null;
   }
   return db.getCollection(usersCollection).findOne({ email: { $eq: email } });
