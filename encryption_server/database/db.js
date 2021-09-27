@@ -8,7 +8,7 @@ const db = new Loki(DB_NAME);
 
 (async () => {
   const mockedUsers = db
-    .addCollection(USERS_COLLECTION)
+    .addCollection(USERS_COLLECTION, { unique: 'email' })
     .insert(await getMockedUsers());
   console.log(
     `Database populated with users: ${JSON.stringify(mockedUsers, null, 2)}`
