@@ -40,7 +40,7 @@ const addRoutes = (server) => {
         validate: {
           payload: Joi.object({
             email: Joi.string().email().required(),
-            password: Joi.string().alphanum().min(2).max(255).required(),
+            password: Joi.string().min(2).max(255).required(),
           }).required(),
         },
         handler: (req, h) => {
