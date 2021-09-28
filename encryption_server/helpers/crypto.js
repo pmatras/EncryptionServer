@@ -67,7 +67,7 @@ const encryptSampleFile = async (rsaKey) => {
     };
   } catch (error) {
     console.error(
-      `Error occurred during sample pdf file encryption: ${e.message}`
+      `Error occurred during sample pdf file encryption: ${error.message}`
     );
     throw error;
   }
