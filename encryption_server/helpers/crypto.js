@@ -1,8 +1,22 @@
-const { generateKeyPairSync } = require('crypto');
+const {
+  generateKeyPairSync,
+  publicEncrypt,
+  randomBytes,
+  createCipheriv,
+} = require('crypto');
+
+const path = require('path');
+const { readFileSync } = require('fs');
 
 const {
   rsaKeys: { keysLength, privateKeyPassword },
 } = require('../config/config');
+
+const PDF_FILE_PATH = path.join(__dirname, '..', 'assets', 'sample.pdf');
+
+const AES_ALGORITHM = 'aes-256-ctr';
+const AES_KEY_LENGTH = 32;
+const AES_IV_LENGTH = 16;
 
 const generateKeyPair = async () => {
   try {
@@ -29,6 +43,37 @@ const generateKeyPair = async () => {
   }
 };
 
+const encryptSymmetric = (data) => {
+  const key = randomBytes(AES_KEY_LENGTH);
+  const iv = randomBytes(AES_IV_LENGTH);
+  const aesCipher = createCipheriv(AES_ALGORITHM, key, iv);
+  const encryptedData = aesCipher.update(data);
+  aesCipher.final();
+  return { key, iv, encryptedData };
+};
+
+const encryptAssymmetric = (rsaKey, data) => publicEncrypt(rsaKey, data);
+
+const encryptSampleFile = async (rsaKey) => {
+  try {
+    const data = readFileSync(PDF_FILE_PATH, { encoding: 'utf-8' });
+    const { encryptedData, key, iv } = encryptSymmetric(data);
+    const encryptedKey = encryptAssymmetric(rsaKey, key);
+    console.log('Successfully encrypted sample pdf file');
+    return {
+      fileBase64: encryptedData.toString('base64'),
+      keyBase64: encryptedKey.toString('base64'),
+      ivHex: iv.toString('hex'),
+    };
+  } catch (error) {
+    console.error(
+      `Error occurred during sample pdf file encryption: ${e.message}`
+    );
+    throw error;
+  }
+};
+
 module.exports = {
   generateKeyPair,
+  encryptSampleFile,
 };

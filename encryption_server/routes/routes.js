@@ -7,7 +7,7 @@ const createToken = require('../helpers/jwtToken');
 
 const { checkPassword } = require('../helpers/password');
 
-const { generateKeyPair } = require('../helpers/crypto');
+const { generateKeyPair, encryptSampleFile } = require('../helpers/crypto');
 
 const {
   addRsaKeysPairForUser,
@@ -93,6 +93,49 @@ const addRoutes = (server) => {
           } catch (error) {
             console.error(
               `Error occurred while handling user's RSA keys pair generation request: ${error.message}`
+            );
+            return Boom.internal(error.message);
+          }
+        },
+      },
+    },
+    {
+      method: 'POST',
+      path: '/api/encrypt',
+      config: {
+        auth: {
+          strategy: 'jwt_auth',
+        },
+        pre: [
+          {
+            method: (req, h) => {
+              const user = req.auth.credentials;
+              const userKeys = getRsaKeysPairForUser(user);
+              if (!userKeys) {
+                throw Boom.badRequest(
+                  'RSA keys pair should be generated first'
+                );
+              }
+              return h.response(userKeys);
+            },
+            assign: 'userKeys',
+          },
+        ],
+        handler: async (req, h) => {
+          try {
+            const user = req.auth.credentials;
+            const {
+              userKeys: {
+                keys: { publicKey },
+              },
+            } = req.pre;
+
+            console.log(`Encrypting sample file for user ${user.name}`);
+            const result = await encryptSampleFile(publicKey);
+            return h.response(result).code(200);
+          } catch (error) {
+            console.error(
+              `Error occurred during handling file encryption using user's rsa public key: ${error.message}`
             );
             return Boom.internal(error.message);
           }
