@@ -7,6 +7,13 @@ const createToken = require('../helpers/jwtToken');
 
 const { checkPassword } = require('../helpers/password');
 
+const { generateKeyPair } = require('../helpers/crypto');
+
+const {
+  addRsaKeysPairForUser,
+  getRsaKeysPairForUser,
+} = require('../helpers/dbRsaKeys');
+
 const addRoutes = (server) => {
   const routes = [
     {
@@ -47,6 +54,47 @@ const addRoutes = (server) => {
               `Failed to sign in user, error occurred: ${error.message}`
             );
             throw Boom.internal(error.message);
+          }
+        },
+      },
+    },
+    {
+      method: 'POST',
+      path: '/api/generate-key-pair',
+      config: {
+        auth: {
+          strategy: 'jwt_auth',
+        },
+        pre: [
+          {
+            method: (req, h) => {
+              const user = req.auth.credentials;
+              const userKeys = getRsaKeysPairForUser(user);
+              if (userKeys) {
+                throw Boom.badRequest('RSA keys pair already generated');
+              }
+              return h.continue;
+            },
+          },
+        ],
+        handler: async (req, h) => {
+          try {
+            const user = req.auth.credentials;
+            const { publicKey, privateKey, privateKeyPassword } =
+              await generateKeyPair();
+            addRsaKeysPairForUser(user, {
+              publicKey,
+              privateKey,
+              privateKeyPassword,
+            });
+            return h
+              .response({ privKey: privateKey, pubKey: publicKey })
+              .code(201);
+          } catch (error) {
+            console.error(
+              `Error occurred while handling user's RSA keys pair generation request: ${error.message}`
+            );
+            return Boom.internal(error.message);
           }
         },
       },
